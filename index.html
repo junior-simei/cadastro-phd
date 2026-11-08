@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Cadastro PHD</title>
+<!--
+  Formulário do cliente — CRM PHD (08/11/2026).
+  Publicado no GitHub Pages (repositório público junior-simei/cadastro-phd, só com esta página).
+  Fonte no repositório do CRM: formulario-cliente/index.html. Os dados vão para a função
+  `formulario` do Supabase; as fotos sobem direto para o bucket privado, já reduzidas aqui.
+-->
+<style>
+  :root { --cor:#1F3B6E; --cor-viva:#2E5AA8; --fundo:#F3F5F9; --cartao:#fff; --texto:#1B2433; --suave:#5B6678;
+          --borda:#D9DFE8; --ok:#1E8E5A; --erro:#C0392B; --raio:14px; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--fundo); color:var(--texto);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 16px 16px 40px; }
+  header { display:flex; align-items:center; gap:12px; margin: 8px 0 18px; }
+  .logo { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--cor-viva),var(--cor));
+          color:#fff; font-weight:800; display:grid; place-items:center; letter-spacing:.02em; }
+  header h1 { font-size:1.15rem; margin:0; } header p { margin:0; color:var(--suave); font-size:.9rem; }
+  .passos { display:flex; gap:6px; margin: 0 0 14px; }
+  .passos span { flex:1; height:5px; border-radius:3px; background:var(--borda); }
+  .passos span.feito { background:var(--cor-viva); }
+  section.cartao { background:var(--cartao); border-radius:var(--raio); padding:18px 16px; box-shadow:0 1px 3px rgba(20,30,50,.08); }
+  h2 { font-size:1.1rem; margin:0 0 4px; } .dica { color:var(--suave); font-size:.92rem; margin:0 0 14px; }
+  label { display:block; font-weight:600; font-size:.92rem; margin: 12px 0 5px; }
+  input[type=text], input[type=email], input[type=tel], select {
+    width:100%; font-size:16px; padding:12px; border:1px solid var(--borda); border-radius:10px; background:#fff; color:var(--texto); }
+  input:focus, select:focus { outline: 2px solid var(--cor-viva); outline-offset: 0; border-color: transparent; }
+  .linha { display:flex; gap:10px; } .linha > div { flex:1; min-width:0; } .linha > .curto { flex:0 0 34%; }
+  .caixa { display:flex; gap:10px; align-items:flex-start; margin:16px 0 4px; font-weight:500; }
+  .caixa input { width:22px; height:22px; margin:1px 0 0; flex:0 0 auto; accent-color: var(--cor-viva); }
+  .nota { font-size:.85rem; color:var(--suave); margin:6px 0 0; min-height:1.2em; }
+  .nota.erro { color: var(--erro); }
+  .bloco { border-top:1px solid var(--borda); margin-top:16px; padding-top:4px; }
+  button { font: inherit; }
+  .acoes { display:flex; gap:10px; margin-top:20px; }
+  .btn { flex:1; border:0; border-radius:12px; padding:14px; font-weight:700; font-size:1rem; cursor:pointer; }
+  .btn.prim { background:linear-gradient(135deg,var(--cor-viva),var(--cor)); color:#fff; }
+  .btn.sec { background:#E6EAF1; color:var(--texto); flex:0 0 34%; }
+  .btn:disabled { opacity:.55; }
+  .foto { border:1.5px dashed var(--borda); border-radius:12px; padding:14px; margin-top:12px; text-align:center; }
+  .foto img { max-width:100%; max-height:220px; border-radius:8px; display:block; margin: 8px auto 0; }
+  .foto .btn { width:100%; margin-top:10px; }
+  .foto.ok { border-style: solid; border-color: var(--ok); }
+  .estado { font-size:.88rem; margin-top:8px; color: var(--suave); }
+  .estado.ok { color: var(--ok); font-weight:600; }
+  .estado.erro { color: var(--erro); }
+  .centro { text-align:center; padding: 30px 10px; }
+  .centro .icone { font-size: 52px; }
+  .oculto { display:none !important; }
+  .resumo div { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--borda); font-size:.93rem; }
+  .resumo div span:first-child { color: var(--suave); } .resumo div span:last-child { text-align:right; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo">PHD</div>
+    <div><h1 id="titulo">Cadastro</h1><p>Leva uns 2 minutos</p></div>
+  </header>
+
+  <div id="carregando" class="cartao centro"><p>Carregando…</p></div>
+
+  <div id="aviso" class="oculto"><section class="cartao centro"><div class="icone" id="aviso-icone">⏳</div>
+    <h2 id="aviso-titulo"></h2><p class="dica" id="aviso-texto"></p></section></div>
+
+  <form id="form" class="oculto" novalidate autocomplete="on">
+    <div class="passos"><span></span><span></span><span></span><span></span></div>
+
+    <!-- 1. endereço -->
+    <section class="cartao etapa" data-etapa="0">
+      <h2>Endereço</h2>
+      <p class="dica">Digite o CEP: a rua, o bairro e a cidade aparecem sozinhos.</p>
+      <div data-end="">
+        <div class="linha"><div class="curto"><label for="cep">CEP</label>
+          <input id="cep" type="tel" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9"></div>
+          <div><label for="num">Número</label><input id="num" type="text" inputmode="text" placeholder="Nº"></div></div>
+        <p class="nota" id="cep-nota"></p>
+        <label for="log">Rua / avenida</label><input id="log" type="text" autocomplete="address-line1">
+        <label for="comp">Complemento</label><input id="comp" type="text" placeholder="Apto, sala, bloco… (se tiver)">
+        <label for="bairro">Bairro</label><input id="bairro" type="text">
+        <div class="linha"><div><label for="cidade">Cidade</label><input id="cidade" type="text" autocomplete="address-level2"></div>
+          <div class="curto"><label for="uf">Estado</label><select id="uf"></select></div></div>
+      </div>
+      <label class="caixa"><input type="checkbox" id="igual" checked> Entregar no mesmo endereço</label>
+      <div id="entrega" class="bloco oculto" data-end="ent_">
+        <h2 style="margin-top:10px">Endereço de entrega</h2>
+        <div class="linha"><div class="curto"><label for="ent_cep">CEP</label>
+          <input id="ent_cep" type="tel" inputmode="numeric" placeholder="00000-000" maxlength="9"></div>
+          <div><label for="ent_num">Número</label><input id="ent_num" type="text"></div></div>
+        <p class="nota" id="ent_cep-nota"></p>
+        <label for="ent_log">Rua / avenida</label><input id="ent_log" type="text">
+        <label for="ent_comp">Complemento</label><input id="ent_comp" type="text" placeholder="Apto, sala, bloco… (se tiver)">
+        <label for="ent_bairro">Bairro</label><input id="ent_bairro" type="text">
+        <div class="linha"><div><label for="ent_cidade">Cidade</label><input id="ent_cidade" type="text"></div>
+          <div class="curto"><label for="ent_uf">Estado</label><select id="ent_uf"></select></div></div>
+      </div>
+      <p class="nota erro" id="erro-0"></p>
+      <div class="acoes"><button type="button" class="btn prim" data-ir="1">Continuar</button></div>
+    </section>
+
+    <!-- 2. contato e profissão -->
+    <section class="cartao etapa oculto" data-etapa="1">
+      <h2>E-mail e profissão</h2>
+      <p class="dica">Para a nota fiscal e para comprar como profissional.</p>
+      <label for="email">E-mail</label>
+      <input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="nome@email.com">
+      <label for="prof">Profissão</label><select id="prof"></select>
+      <div class="linha"><div class="curto"><label for="cons">Conselho</label><select id="cons"></select></div>
+        <div><label for="consn">Nº do registro</label><input id="consn" type="text" inputmode="numeric" placeholder="Número no conselho"></div></div>
+      <p class="nota erro" id="erro-1"></p>
+      <div class="acoes"><button type="button" class="btn sec" data-ir="0">Voltar</button>
+        <button type="button" class="btn prim" data-ir="2">Continuar</button></div>
+    </section>
+
+    <!-- 3. fotos -->
+    <section class="cartao etapa oculto" data-etapa="2">
+      <h2>Fotos</h2>
+      <p class="dica">Pode ser o documento físico ou o digital (CNH ou RG digital na tela do celular).</p>
+      <div class="foto" id="box-documento">
+        <strong>1. Documento com foto</strong>
+        <div class="estado">Foto da frente, com os dados legíveis.</div>
+        <img id="ver-documento" class="oculto" alt="">
+        <input type="file" id="arq-documento" accept="image/*" class="oculto">
+        <button type="button" class="btn sec" data-foto="documento">📷 Tirar ou escolher foto</button>
+        <div class="estado" id="st-documento"></div>
+      </div>
+      <div class="foto" id="box-selfie">
+        <strong>2. Selfie segurando o documento</strong>
+        <div class="estado">Seu rosto e o documento aparecendo juntos.</div>
+        <img id="ver-selfie" class="oculto" alt="">
+        <input type="file" id="arq-selfie" accept="image/*" class="oculto">
+        <button type="button" class="btn sec" data-foto="selfie">🤳 Tirar ou escolher foto</button>
+        <div class="estado" id="st-selfie"></div>
+      </div>
+      <p class="nota erro" id="erro-2"></p>
+      <div class="acoes"><button type="button" class="btn sec" data-ir="1">Voltar</button>
+        <button type="button" class="btn prim" data-ir="3">Continuar</button></div>
+    </section>
+
+    <!-- 4. confirmar -->
+    <section class="cartao etapa oculto" data-etapa="3">
+      <h2>Confira e envie</h2>
+      <div class="resumo" id="resumo"></div>
+      <label class="caixa"><input type="checkbox" id="autorizo">
+        <span>Autorizo a PHD a usar estes dados e fotos só para o meu cadastro.</span></label>
+      <p class="nota erro" id="erro-3"></p>
+      <div class="acoes"><button type="button" class="btn sec" data-ir="2">Voltar</button>
+        <button type="submit" class="btn prim" id="enviar">Enviar</button></div>
+    </section>
+  </form>
+</main>
+
+<script>
+"use strict";
+// endereço da função do Supabase (troca nos testes por ?api=…)
+const FUNCAO = "https://cejuzdxlzkpbobboynct.supabase.co/functions/v1/formulario";
+const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const CEP_SERVICOS = [
+  ["viacep", c => `https://viacep.com.br/ws/${c}/json/`],
+  ["brasilapi", c => `https://brasilapi.com.br/api/cep/v2/${c}`],
+  ["opencep", c => `https://opencep.com/v1/${c}`],
+];
+const LADO_MAIOR = 2000, QUALIDADE = 0.85;
+
+const q = new URLSearchParams(location.search);
+const TOKEN = q.get("t") || "";
+const API = q.get("api") || FUNCAO;
+const $ = id => document.getElementById(id);
+const fotos = { documento: null, selfie: null };
+let etapa = 0;
+
+function aviso(icone, titulo, texto) {
+  $("carregando").classList.add("oculto"); $("form").classList.add("oculto");
+  $("aviso").classList.remove("oculto");
+  $("aviso-icone").textContent = icone; $("aviso-titulo").textContent = titulo; $("aviso-texto").textContent = texto;
+}
+const MOTIVOS = {
+  vencido: ["⏳", "Este link venceu", "Peça um link novo para quem te atendeu na PHD."],
+  usado: ["✅", "Cadastro já enviado", "Seus dados já chegaram para a PHD. Obrigado!"],
+  invalido: ["🔗", "Link inválido", "Confira se o link foi copiado inteiro ou peça um novo para quem te atendeu."],
+  erro: ["⚠️", "Não deu para abrir agora", "Tente de novo em alguns minutos."],
+};
+
+function opcoes(sel, lista, vazio) {
+  sel.innerHTML = "";
+  const o = document.createElement("option"); o.value = ""; o.textContent = vazio; sel.appendChild(o);
+  for (const v of lista) { const x = document.createElement("option"); x.value = v; x.textContent = v; sel.appendChild(x); }
+}
+
+async function api(metodo, corpo) {
+  const r = metodo === "GET"
+    ? await fetch(`${API}?t=${encodeURIComponent(TOKEN)}`)
+    : await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: TOKEN, ...corpo }) });
+  return r.json();
+}
+
+// ---------------------------------------------------------------- CEP: três serviços em sequência
+async function buscarCep(cep) {
+  for (const [fonte, url] of CEP_SERVICOS) {
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000);
+      const r = await fetch(url(cep), { signal: ctl.signal }); clearTimeout(t);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j.erro) continue;
+      const e = fonte === "brasilapi"
+        ? { log: j.street, bairro: j.neighborhood, cidade: j.city, uf: j.state }
+        : { log: j.logradouro, bairro: j.bairro, cidade: j.localidade, uf: j.uf };
+      if (e.cidade && e.uf) return e;
+    } catch (_) { /* tenta o próximo */ }
+  }
+  return null;
+}
+
+function ligarCep(pre) {
+  const campo = $(pre + "cep"), nota = $(pre + "cep-nota");
+  let ultimo = "";
+  campo.addEventListener("input", async () => {
+    let d = campo.value.replace(/\D/g, "").slice(0, 8);
+    campo.value = d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
+    if (d.length !== 8 || d === ultimo) return;
+    ultimo = d; nota.className = "nota"; nota.textContent = "Buscando o endereço…";
+    const e = await buscarCep(d);
+    if (!e) { nota.className = "nota erro"; nota.textContent = "Não achamos esse CEP agora. Preencha o endereço abaixo."; return; }
+    if (e.log) $(pre + "log").value = e.log;
+    if (e.bairro) $(pre + "bairro").value = e.bairro;
+    $(pre + "cidade").value = e.cidade; $(pre + "uf").value = e.uf;
+    nota.textContent = e.log ? "Endereço encontrado. Agora é só o número." : "CEP da cidade: digite a rua e o bairro.";
+    (e.log ? $(pre + "num") : $(pre + "log")).focus();
+  });
+}
+
+// ---------------------------------------------------------------- fotos: reduz no celular e envia
+function carregarImagem(arquivo) {
+  return new Promise((ok, falha) => {
+    const img = new Image(); const url = URL.createObjectURL(arquivo);
+    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); };
+    img.src = url;
+  });
+}
+
+async function reduzir(arquivo) {
+  let fonte, w, h;
+  try {
+    fonte = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
+    w = fonte.width; h = fonte.height;
+  } catch (_) {
+    fonte = await carregarImagem(arquivo); w = fonte.naturalWidth; h = fonte.naturalHeight;
+  }
+  const escala = Math.min(1, LADO_MAIOR / Math.max(w, h));
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * escala); c.height = Math.round(h * escala);
+  c.getContext("2d").drawImage(fonte, 0, 0, c.width, c.height);
+  const blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", QUALIDADE));
+  if (!blob) throw new Error("toBlob");
+  return blob;
+}
+
+async function escolherFoto(tipo, arquivo) {
+  const st = $("st-" + tipo), box = $("box-" + tipo), ver = $("ver-" + tipo);
+  fotos[tipo] = null; box.classList.remove("ok");
+  st.className = "estado"; st.textContent = "Preparando a foto…";
+  let corpo = arquivo, tipoMime = arquivo.type || "image/jpeg";
+  try { corpo = await reduzir(arquivo); tipoMime = "image/jpeg"; } catch (_) { /* envia a original: nunca barra */ }
+  ver.src = URL.createObjectURL(corpo); ver.classList.remove("oculto");
+  st.textContent = "Enviando…";
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    try {
+      const u = await api("POST", { acao: "url_foto", tipo });
+      if (!u.ok) { if (MOTIVOS[u.motivo]) return aviso(...MOTIVOS[u.motivo]); throw new Error(u.motivo); }
+      const r = await fetch(u.url, { method: "PUT", headers: { "content-type": tipoMime, "x-upsert": "true" }, body: corpo });
+      if (!r.ok) throw new Error("upload " + r.status);
+      fotos[tipo] = u.caminho; box.classList.add("ok");
+      st.className = "estado ok"; st.textContent = "✓ Foto enviada";
+      return;
+    } catch (_) { await new Promise(ok => setTimeout(ok, 1200)); }
+  }
+  st.className = "estado erro"; st.textContent = "Não conseguimos enviar. Confira a internet e toque para tentar de novo.";
+}
+
+// ---------------------------------------------------------------- etapas
+function valor(id) { return ($(id).value || "").trim(); }
+
+function erros(n) {
+  const e = [];
+  if (n === 0) {
+    if (valor("cep").replace(/\D/g, "").length !== 8) e.push("Informe o CEP.");
+    if (!valor("log") || !valor("num") || !valor("cidade") || !valor("uf")) e.push("Complete rua, número, cidade e estado.");
+    if (!$("igual").checked && (!valor("ent_log") || !valor("ent_num") || !valor("ent_cidade") || !valor("ent_uf")))
+      e.push("Complete o endereço de entrega.");
+  }
+  if (n === 1) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor("email"))) e.push("Informe um e-mail válido.");
+    if (!valor("prof")) e.push("Escolha a profissão.");
+    if (valor("cons") && !valor("consn")) e.push("Informe o número do registro no conselho.");
+  }
+  if (n === 2) {
+    if (!fotos.documento) e.push("Falta a foto do documento.");
+    if (!fotos.selfie) e.push("Falta a selfie segurando o documento.");
+  }
+  return e;
+}
+
+function endereco(pre) {
+  const rua = [valor(pre + "log"), valor(pre + "num"), valor(pre + "comp")].filter(Boolean).join(", ");
+  return [rua, valor(pre + "bairro"), `${valor(pre + "cidade")}/${valor(pre + "uf")}`, valor(pre + "cep")].filter(Boolean).join(" · ");
+}
+
+function resumo() {
+  const linhas = [["Endereço", endereco("")], ["Entrega", $("igual").checked ? "Mesmo endereço" : endereco("ent_")],
+    ["E-mail", valor("email")], ["Profissão", valor("prof")], ["Registro", `${valor("cons")} ${valor("consn")}`.trim() || "—"],
+    ["Fotos", "Documento e selfie ✓"]];
+  $("resumo").innerHTML = "";
+  for (const [k, v] of linhas) {
+    const d = document.createElement("div"); const a = document.createElement("span"); const b = document.createElement("span");
+    a.textContent = k; b.textContent = v; d.append(a, b); $("resumo").appendChild(d);
+  }
+}
+
+function ir(n) {
+  if (n > etapa) {
+    const e = erros(etapa);
+    $("erro-" + etapa).textContent = e.join(" ");
+    if (e.length) return;
+  }
+  etapa = n;
+  document.querySelectorAll(".etapa").forEach(s => s.classList.toggle("oculto", Number(s.dataset.etapa) !== n));
+  document.querySelectorAll(".passos span").forEach((s, i) => s.classList.toggle("feito", i <= n));
+  if (n === 3) resumo();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function enviar(ev) {
+  ev.preventDefault();
+  if (!$("autorizo").checked) { $("erro-3").textContent = "Marque a autorização para enviar."; return; }
+  const b = $("enviar"); b.disabled = true; b.textContent = "Enviando…"; $("erro-3").textContent = "";
+  const campos = ["cep","log","num","comp","bairro","cidade","uf","email","prof","cons","consn",
+                  "ent_cep","ent_log","ent_num","ent_comp","ent_bairro","ent_cidade","ent_uf"];
+  const respostas = { igual: $("igual").checked, autorizo: true };
+  for (const c of campos) respostas[c] = valor(c);
+  try {
+    const r = await api("POST", { acao: "enviar", respostas, foto_documento: fotos.documento, foto_selfie: fotos.selfie });
+    if (r.ok) return aviso("🎉", "Recebemos seus dados!", "Obrigado. A PHD vai finalizar o seu cadastro e te avisa pelo WhatsApp.");
+    if (MOTIVOS[r.motivo]) return aviso(...MOTIVOS[r.motivo]);
+    throw new Error(r.motivo);
+  } catch (_) {
+    b.disabled = false; b.textContent = "Enviar";
+    $("erro-3").textContent = "Não conseguimos enviar agora. Confira a internet e toque em Enviar de novo.";
+  }
+}
+
+async function iniciar() {
+  for (const id of ["uf", "ent_uf"]) opcoes($(id), UFS, "UF");
+  if (!TOKEN) return aviso(...MOTIVOS.invalido);
+  let info;
+  try { info = await api("GET"); } catch (_) { return aviso(...MOTIVOS.erro); }
+  if (!info.ok) return aviso(...(MOTIVOS[info.motivo] || MOTIVOS.erro));
+  if (info.nome) $("titulo").textContent = `Olá, ${info.nome}!`;
+  opcoes($("prof"), info.profissoes || [], "Selecione…");
+  opcoes($("cons"), info.conselhos || [], "Sigla");
+  ligarCep(""); ligarCep("ent_");
+  $("igual").addEventListener("change", () => $("entrega").classList.toggle("oculto", $("igual").checked));
+  document.querySelectorAll("[data-ir]").forEach(b => b.addEventListener("click", () => ir(Number(b.dataset.ir))));
+  document.querySelectorAll("[data-foto]").forEach(b => b.addEventListener("click", () => $("arq-" + b.dataset.foto).click()));
+  for (const tipo of ["documento", "selfie"]) {
+    $("arq-" + tipo).addEventListener("change", e => { const f = e.target.files[0]; if (f) escolherFoto(tipo, f); e.target.value = ""; });
+  }
+  $("form").addEventListener("submit", enviar);
+  $("carregando").classList.add("oculto"); $("form").classList.remove("oculto");
+  ir(0);
+}
+iniciar();
+</script>
+</body>
+</html>
