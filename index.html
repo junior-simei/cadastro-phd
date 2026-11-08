@@ -168,6 +168,11 @@ const CEP_SERVICOS = [
   ["opencep", c => `https://opencep.com/v1/${c}`],
 ];
 const LADO_MAIOR = 2000, QUALIDADE = 0.85;
+// profissão → conselho (pelo começo do nome, sem acento; só vale se o conselho existir na lista)
+const CONSELHO_DA_PROFISSAO = [
+  ["biomed", "CRBM"], ["dent", "CRO"], ["odont", "CRO"], ["farmac", "CRF"], ["fisio", "CREFITO"],
+  ["enferm", "COREN"], ["medic", "CRM"],
+];
 
 const q = new URLSearchParams(location.search);
 const TOKEN = q.get("t") || "";
@@ -287,6 +292,21 @@ async function escolherFoto(tipo, arquivo) {
 }
 
 // ---------------------------------------------------------------- etapas
+function semAcento(t) { return (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+
+// ao escolher a profissão, o conselho já vem marcado (a pessoa pode trocar)
+let conselhoAuto = "";
+function ligarConselho() {
+  const prof = $("prof"), cons = $("cons");
+  prof.addEventListener("change", () => {
+    const p = semAcento(prof.value);
+    const achou = CONSELHO_DA_PROFISSAO.find(([inicio]) => p.startsWith(inicio));
+    const sigla = achou && [...cons.options].some(o => o.value === achou[1]) ? achou[1] : "";
+    if (!cons.value || cons.value === conselhoAuto) { cons.value = sigla; conselhoAuto = sigla; }
+    if (sigla && cons.value === sigla) $("consn").focus();
+  });
+}
+
 function valor(id) { return ($(id).value || "").trim(); }
 
 function erros(n) {
@@ -366,7 +386,7 @@ async function iniciar() {
   if (info.nome) $("titulo").textContent = `Olá, ${info.nome}!`;
   opcoes($("prof"), info.profissoes || [], "Selecione…");
   opcoes($("cons"), info.conselhos || [], "Sigla");
-  ligarCep(""); ligarCep("ent_");
+  ligarCep(""); ligarCep("ent_"); ligarConselho();
   $("igual").addEventListener("change", () => $("entrega").classList.toggle("oculto", $("igual").checked));
   document.querySelectorAll("[data-ir]").forEach(b => b.addEventListener("click", () => ir(Number(b.dataset.ir))));
   document.querySelectorAll("[data-foto]").forEach(b => b.addEventListener("click", () => $("arq-" + b.dataset.foto).click()));
